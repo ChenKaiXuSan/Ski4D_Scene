@@ -1,0 +1,46 @@
+# hydra config
+hydra:
+  run:
+    dir: ${paths.log_path}
+  job:
+    chdir: false
+
+# Path
+paths:
+  video_path: /workspace/data/side_raw # this is raw data path, with left and right side view.
+  pt_path: /workspace/data/pt # 这里我们需要使用过滤后的bbox作为定位信息
+  log_path: logs/sam3d-body/${infer.type}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  result_output_path: /workspace/data/sam3d_body_results/${infer.type}
+
+  unity:
+    video_path: /workspace/data/unity_data/Recordings
+
+# Model
+model:
+  root_path: /workspace/code/ckpt/sam-3d-body-dinov3
+  checkpoint_path: ${model.root_path}/model.ckpt
+  mhr_path: ${model.root_path}/assets/mhr_model.pt
+
+  # detector_name: yolov8n
+  # segmentor_name: sam_vit_b
+  fov_name: moge2
+
+visualize:
+  save_video: true
+  plot_3d: true
+  plot_2d: true
+  plot_skeleton: true
+  plot_skeleton_3d: true
+
+infer:
+  type: video # video or unity
+  conf_thres: 50.0
+  keep_frames: true
+  num_inference_steps: 4
+  gpu: 0
+  # Multi-GPU Multi-Threading Settings
+  num_gpus: null  # null = use all available GPUs, or specify number
+  num_workers: null  # null = use num_gpus, or specify number of worker threads
+
+dataset:
+  recursive: false

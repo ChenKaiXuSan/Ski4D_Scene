@@ -1,0 +1,52 @@
+# * this method should use python -m to make sure the hydra config is loaded correctly
+# hydra config
+hydra:
+  run:
+    dir: ${paths.log_path}
+  job:
+    chdir: false
+
+# Path
+paths:
+  pt_path: /workspace/data/pt
+  video_path: /workspace/data/side_raw # this is raw data path, with left and right side view.
+  log_path: logs/vggt/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  inference_output_path: /workspace/data/vggt_npy
+
+# Model
+model:
+  ckpt_path: /workspace/code/ckpt/pretrained_h36m_detectron_coco.bin
+
+visualize:
+  save_video: true
+  plot_3d: true
+  plot_2d: true
+  plot_skeleton: true
+  plot_skeleton_3d: true
+
+infer:
+  conf_thres: 50.0
+  prediction_mode: "Depthmap and Camera Branch"
+  keep_frames: true
+  gpu: 1
+  reproj_err: 20
+  hflip: true
+
+runtime:
+  verbose: true
+  num_workers: 4
+  debug: false
+
+dataset:
+  recursive: false
+
+bundle_adjustment:
+  run_ba: true
+  lr: 1e-2
+  ba_weight_reproj: 1.0
+  ba_weight_smooth: 0.1
+  ba_weight_baseline: 0.01
+  ba_weight_bone_length: 0.1
+  ba_weight_pose_temporal: 0.1
+  num_iters: 10000
+  mode: "pose_only" # options: "full", "pose_only"

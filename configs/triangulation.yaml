@@ -1,0 +1,30 @@
+# hydra config
+hydra:
+  run:
+    dir: ${paths.log_path}
+  job:
+    chdir: false
+
+
+camera:
+  matrix:
+    - [1103.08405, 0.0, 947.946068]
+    - [0.0, 1106.01861, 531.242592]
+    - [0.0, 0.0, 1.0]
+  distortion_coefficients:
+    [0.17697328, -0.45675065, -0.0026601, -0.00330938, 0.35538705]
+  image_size: [1920, 1080]
+
+paths:
+  pt_path: /workspace/data/pt
+  log_path: logs/triangulated/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+baseline_m: 20
+
+camera_position_method: kpt # kpt or bbox
+keypoint_vis: false
+
+visualize:
+  reproject: true
+  keypoint_3d_vis: true
+  keypoint_vis: false

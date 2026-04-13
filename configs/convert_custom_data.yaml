@@ -1,0 +1,9 @@
+# hydra config
+hydra:
+  run:
+    dir: /workspace/code/logs/prepare_dataset/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  job:
+    chdir: false
+
+input: /workspace/data/pt
+output: /workspace/data/custom_npz

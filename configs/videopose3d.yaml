@@ -1,0 +1,26 @@
+# * this method should use python -m to make sure the hydra config is loaded correctly
+# hydra config
+hydra:
+  run:
+    dir: ${paths.log_path}
+  job:
+    chdir: false
+
+# Path
+paths:
+  log_path: logs/pose3d/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  pt_path: /workspace/data/pt
+  npy_path: /workspace/data/videopose3d_npy
+  data_path: "/workspace/data/side_raw" # this is raw data path, with left and right side view.
+
+# Model
+model:
+  ckpt_path: /workspace/code/ckpt/pretrained_h36m_detectron_coco.bin
+
+visualize:
+  save_video: true
+  plot_3d: true
+  plot_2d: true
+  plot_skeleton: true
+  plot_skeleton_3d: true
+

@@ -1,0 +1,31 @@
+# hydra config
+hydra:
+  run:
+    dir: ${paths.log_path}
+  job:
+    chdir: false
+
+# Path
+Raw_paths:
+  root_path: /workspace/data
+  video_path: ${paths.root_path}/side_raw
+  sam3d_body_path: ${paths.root_path}/sam3d_body_results/perons
+
+Unity_paths:
+  root_path: /workspace/data
+  video_path: ${paths.root_path}/unity_data/Recordings
+  sam3d_body_path: ${paths.root_path}/sam3d_body_results/unity
+  GT_2d_left: ${paths.root_path}/unity_data/RecordingsPose/cam_left camera/male_kpt2d_left camera_trimmed.jsonl",
+  GT_2d_right: ${paths.root_path}/unity_data/RecordingsPose/cam_right
+  GT_3d: ${paths.root_path}/unity_data/RecordingsPose/ground_truth/male_kpt3d_trimmed.jsonl
+
+visualize:
+  save_focal_length: false
+  save_mesh_ply: false
+  save_mesh_overlay: true
+  save_bbox_image: true
+  save_3d_mesh: false
+  save_3d_keypoints: true
+  save_together: true
+
+log_path: logs/front_side/${now:%Y-%m-%d}/${now:%H-%M-%S}

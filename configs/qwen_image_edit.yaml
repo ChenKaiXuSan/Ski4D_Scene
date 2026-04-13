@@ -1,0 +1,34 @@
+# hydra config
+hydra:
+  run:
+    dir: ${paths.log_path}
+  job:
+    chdir: false
+
+# Path
+paths:
+  video_path: /workspace/data/side_raw # this is raw data path, with left and right side view.
+  log_path: logs/qwen-image-edit/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+# Model
+model:
+  root_path: /workspace/code/ckpt/qwen
+  qwen_image_edit: ${model.root_path}/models/Qwen-Image-Edit-2509
+  qwen_image_edit_rapid: ${model.root_path}/models/Qwen-Image-Edit-Rapid-AIO
+  qwen_image_multiple_angles: ${model.root_path}/lora/multiple-angles
+
+visualize:
+  save_video: true
+  plot_3d: true
+  plot_2d: true
+  plot_skeleton: true
+  plot_skeleton_3d: true
+
+infer:
+  conf_thres: 50.0
+  keep_frames: true
+  num_inference_steps: 4
+  gpu: 0
+
+dataset:
+  recursive: false

@@ -1,0 +1,32 @@
+# hydra config
+hydra:
+  run:
+    dir: ${paths.log_path}
+  job:
+    chdir: false
+
+# Path
+paths:
+  root_path: /workspace/data
+  pt_path: ${paths.root_path}/pt
+  video_path: ${paths.root_path}/side_raw
+  vggt_path: ${paths.root_path}/vggt_npy
+  videopose3d_path: ${paths.root_path}/videopose3d_npy
+  sam3d_body_path: ${paths.root_path}/sam3d_body_results
+  sam3_path: ${paths.root_path}/front_sam3_results
+
+  log_path: logs/front_side/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+visualize:
+  save_video: true
+  plot_3d: true
+  plot_2d: true
+  plot_skeleton: true
+  plot_skeleton_3d: true
+
+infer:
+  conf_thres: 50.0
+  gpu: 1
+
+dataset:
+  recursive: true
