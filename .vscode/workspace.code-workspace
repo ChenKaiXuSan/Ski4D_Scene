@@ -1,8 +1,16 @@
 {
 	"folders": [
 		{
-			"name": "skeleton",
-			"path": "/workspace/project"
+			"name": "ski4D",
+			"path": "/workspace/Ski4D_Scene"
 		},
+		{
+			"name": "data",
+			"path": "/workspace/data"
+		},
+		{
+			"name": "reference",
+			"path": "/workspace/code"
+		}
 	]
 }

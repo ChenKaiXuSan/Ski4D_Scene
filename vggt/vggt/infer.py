@@ -22,7 +22,7 @@ Date      	By	Comments
 
 from pathlib import Path
 import logging
-from typing import List, Dict
+from typing import Any, Dict, List
 from omegaconf import DictConfig
 
 import numpy as np
@@ -34,7 +34,7 @@ from vggt.vggt.models.vggt import VGGT
 from vggt.vggt.utils.pose_enc import pose_encoding_to_extri_intri
 from vggt.vggt.utils.geometry import unproject_depth_map_to_point_map
 
-from vggt.load import load_info, load_and_preprocess_images
+from vggt.load import load_and_preprocess_images
 from vggt.save import save_inference_results
 
 from vggt.vis.vggt_camera_vis import plot_cameras_from_predictions
@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 
 class CameraHead:
-    def __init__(self, cfg: DictConfig, out_dir: Path):
+    def __init__(self, cfg: DictConfig, out_dir: Path, inference_output_dir: Path):
         super().__init__()
         self.device = f"cuda:{cfg.infer.gpu}" if torch.cuda.is_available() else "cpu"
         if "cuda" not in self.device:
@@ -53,6 +53,8 @@ class CameraHead:
 
         self.vggt = self.load_vggt_model(self.device, verbose=verbose)
         self.outdir = out_dir
+        self.inference_output_dir = inference_output_dir
+
         self.conf_thres = cfg.get("conf_thres", 50.0)
         self.prediction_mode = cfg.get("prediction_mode", "All")
 
@@ -72,7 +74,7 @@ class CameraHead:
     def run_vggt(
         self,
         images: List[torch.Tensor],
-    ) -> Dict[str, np.ndarray]:
+    ) -> tuple[Dict[str, Any], int, int]:
         """对图像列表执行 VGGT 推理"""
         imgs = load_and_preprocess_images(images).to(self.device)
         dtype = (
@@ -158,7 +160,15 @@ class CameraHead:
         self,
         frame_id: int,
         imgs: list[torch.Tensor],
-    ) -> Dict[str, str]:
+    ) -> tuple[
+        np.ndarray,
+        list[np.ndarray],
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        Dict[str, Any],
+    ]:
         """
         从视频执行 VGGT 重建。
         返回：
@@ -213,4 +223,12 @@ class CameraHead:
                 )
             )
 
-        return camera_extrinsics, camera_intrinsics_resized, R, t, C, world_points_from_depth
+        return (
+            camera_extrinsics,
+            camera_intrinsics_resized,
+            R,
+            t,
+            C,
+            world_points_from_depth,
+            preds,
+        )

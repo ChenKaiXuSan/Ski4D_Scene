@@ -5,6 +5,13 @@
       "type": "debugpy",
       "request": "launch",
       "module": "enter-your-module-name"
+    },
+    {
+      "name": "vggt infer",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "vggt.main",
+      // "python": "/opt/conda/envs/vggt/bin/python"
     }
   ]
 }

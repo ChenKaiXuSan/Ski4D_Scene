@@ -16,7 +16,7 @@ import torch
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from vggt.load import load_info
+from vggt.load import load_data
 from vggt.reproject import reproject_and_visualize
 from vggt.save import save_camera_info
 from vggt.triangulate import triangulate_one_frame
@@ -90,14 +90,14 @@ def process_multi_view_video(
 
     # * load info from pt and video
     left_kpts, left_kpt_scores, left_bboxes, left_bboxes_scores, left_frames = (
-        load_info(
+        load_data(
             video_file_path=left_video_path.as_posix(),
             pt_file_path=left_pt_path.as_posix(),
             assume_normalized=False,
         )
     )
     right_kpts, right_kpt_scores, right_bboxes, right_bboxes_scores, right_frames = (
-        load_info(
+        load_data(
             video_file_path=right_video_path.as_posix(),
             pt_file_path=right_pt_path.as_posix(),
             assume_normalized=False,
