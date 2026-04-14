@@ -11,13 +11,11 @@ from typing import List, Optional, Union
 
 import cv2
 import numpy as np
-import torch
 from omegaconf import DictConfig
-from torchvision.io import read_video
 from tqdm import tqdm
 
 from vggt.reproject import reproject_and_visualize
-from vggt.save import save_camera_info, save_inference_results
+from vggt.save import save_camera_info
 from vggt.vggt.infer import CameraHead
 from vggt.vis.pose_visualization import save_stereo_pose_frame, visualize_3d_joints
 
@@ -38,7 +36,7 @@ def process_one_person(
 ) -> Optional[Path]:
     """同时加载左右视频，并将同一时刻的双视角帧一起输入 VGGT。"""
 
-    subject = p_info.subject_name
+    person_name = p_info.subject_name
 
     left_video_path = p_info.left_video_path
     right_video_path = p_info.right_video_path
@@ -54,7 +52,9 @@ def process_one_person(
 
     logger.info(f"[Run-DV] Processing dual-view frames -> {out_dir}")
 
-    camera_head = CameraHead(cfg, out_dir=out_dir, inference_output_dir=inference_output_path)
+    camera_head = CameraHead(
+        cfg, out_dir=out_dir, inference_output_dir=inference_output_path
+    )
     rigid_transformation_infer = RigidTransformationInfer(cfg)
 
     all_frame_camera_extrinsics = []
@@ -181,17 +181,16 @@ def process_one_person(
 
     # TODO：这里改成当前frame+-前后几帧的方式，增加鲁棒性
 
-    for idx in tqdm(range(0, n_frames), desc="Processing dual-view frames"):
-        img_dir = out_dir / "raw_frames" / f"frame_{idx:04d}"
-        img_dir.mkdir(parents=True, exist_ok=True)
-
-        fused_cloud_point_dir = out_dir / "fused_point_clouds"
-        fused_cloud_point_dir.mkdir(parents=True, exist_ok=True)
+    for idx in tqdm(
+        range(0, n_frames), desc=f"Processing {person_name} dual-view frames"
+    ):
 
         left_bgr = cv2.cvtColor(left_video_frames[idx].numpy(), cv2.COLOR_RGB2BGR)
         right_bgr = cv2.cvtColor(right_video_frames[idx].numpy(), cv2.COLOR_RGB2BGR)
 
         # 保存原始帧以供后续对齐检查
+        img_dir = out_dir / f"frame_{idx:04d}"
+        img_dir.mkdir(parents=True, exist_ok=True)
         cv2.imwrite((img_dir / f"left_{idx:04d}.png").as_posix(), left_bgr)
         cv2.imwrite((img_dir / f"right_{idx:04d}.png").as_posix(), right_bgr)
 
@@ -310,7 +309,7 @@ def process_one_person(
         #     preds["images"] = np.ones(
         #         (fused_world_points.shape[0], 3), dtype=np.float32
         #     )
-                                                                     
+
         #     # 可视化融合之后的点云(保存成glb)，检查对齐效果
         #     save_inference_results(
         #         preds=preds,
@@ -405,7 +404,7 @@ def process_one_person(
         #     all_frame_reproj_after_mean_err_r.append(np.nan)
 
     save_camera_info(
-        out_pt_path=inference_output_path / f"{subject}_vggt_3d_info.npz",
+        out_pt_path=inference_output_path / f"{person_name}_vggt_3d_info.npz",
         all_frame_camera_intrinsics=all_frame_camera_intrinsics,
         all_frame_R=all_frame_R,
         all_frame_t=all_frame_t,

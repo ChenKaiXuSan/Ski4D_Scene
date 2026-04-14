@@ -35,8 +35,8 @@ class PersonInfo:
     subject_name: str
     left_video_path: Path
     right_video_path: Path
-    left_sam3d_body_results_path: Union[Path, List[Path]]
-    right_sam3d_body_results_path: Union[Path, List[Path]]
+    left_sam3d_body_results_path: List[Path]
+    right_sam3d_body_results_path: List[Path]
     output_dir: Path
     inference_output_path: Path
 
@@ -66,7 +66,7 @@ def find_files(
 
 def find_left_right(
     subject_dir: Path,
-) -> Tuple[Optional[Union[Path, List[Path]]], Optional[Union[Path, List[Path]]]]:
+) -> Tuple[Optional[List[Path]], Optional[List[Path]]]:
     """在 subject_dir 查找 left/right 视频文件。
     返回 (left_video_path, right_video_path)，如果找不到则为 None。
     """
@@ -104,10 +104,10 @@ def prepare_paths(cfg: DictConfig):
     inference_output_path = Path(cfg.paths.inference_output_path).resolve()
 
     if not video_root.exists():
-        raise FileNotFoundError(f"video_path not found: {video_root}")
+        raise FileNotFoundError(f"video path not found: {video_root}")
     if not sam_3d_body_results_root.exists():
         raise FileNotFoundError(
-            f"sam3d_body_results_path not found: {sam_3d_body_results_root}"
+            f"sam3d body results path not found: {sam_3d_body_results_root}"
         )
 
     # 1. 对比video root和sam3d_body_results_root的subject是否相同，准备subject
@@ -129,7 +129,7 @@ def prepare_paths(cfg: DictConfig):
     )
 
     for one_subject in common_subjects:
-        logger.info(f"Subject: {one_subject}")
+
         video_subject_dir = video_root / one_subject
         sam_subject_dir = sam_3d_body_results_root / one_subject
 

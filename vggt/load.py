@@ -20,7 +20,6 @@ Date      	By	Comments
 ----------	---	---------------------------------------------------------
 """
 
-import dataclasses
 import logging
 import os
 from pathlib import Path
@@ -28,11 +27,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from omegaconf import DictConfig, OmegaConf
 from PIL import Image
 from torchvision import transforms as TF
 from torchvision.io import read_video
-# from .prepare_paths import PersonInfo
 
 logger = logging.getLogger(__name__)
 
@@ -255,10 +252,10 @@ def load_video_frames(
     left_video_path: Path, right_video_path: Path
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """加载视频帧并返回一个形状为 (N, H, W, C) 的张量。"""
-    left_video_frames, _, info = read_video(
+    left_video_frames, _, _ = read_video(
         left_video_path.as_posix(), pts_unit="sec", output_format="THWC"
     )
-    right_video_frames, _, info = read_video(
+    right_video_frames, _, _ = read_video(
         right_video_path.as_posix(), pts_unit="sec", output_format="THWC"
     )
     return left_video_frames, right_video_frames

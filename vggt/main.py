@@ -10,7 +10,6 @@ Last Modified: 2025-11-25
 
 import logging
 import os
-from pathlib import Path
 from typing import Dict, List, Tuple
 
 import hydra
@@ -53,7 +52,7 @@ def main(cfg: DictConfig) -> None:
 
         # if "pro" in subject_name.lower():
         #     continue; # 跳过 Pro 版本的 subject
-            
+
         out_dir = process_one_person(
             p_info,
             cfg=cfg,

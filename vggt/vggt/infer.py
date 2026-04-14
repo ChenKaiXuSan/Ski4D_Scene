@@ -30,13 +30,12 @@ import torch
 
 # 依赖 VGGT 官方模块
 from vggt.vggt.models.vggt import VGGT
-
 from vggt.vggt.utils.pose_enc import pose_encoding_to_extri_intri
 from vggt.vggt.utils.geometry import unproject_depth_map_to_point_map
 
 from vggt.load import load_and_preprocess_images
-from vggt.save import save_inference_results
 
+from vggt.vis.visual_util import predictions_to_glb
 from vggt.vis.vggt_camera_vis import plot_cameras_from_predictions
 
 
@@ -170,48 +169,40 @@ class CameraHead:
         Dict[str, Any],
     ]:
         """
-        从视频执行 VGGT 重建。
-        返回：
-            {
-            'npz_path': str,
-            'glb_path': str,
-            'ply_path': Optional[str],
-            'n_frames': int,
-            'time': float
-            }
+        从给定的帧图像列表中执行 VGGT 推理，保存结果，并返回相机参数和点云等信息。
         """
 
-        outdir = self.outdir / f"frame_{frame_id:04d}"
-        outdir.mkdir(parents=True, exist_ok=True)
+        log_dir = self.outdir / f"frame_{frame_id:04d}"
+        log_dir.mkdir(parents=True, exist_ok=True)
 
         H, W = imgs[0].shape[:2]
+        
         # 推理
         preds, orig_h, orig_w = self.run_vggt(imgs)
 
         plot_cameras_from_predictions(
             predictions=preds,
-            out_path=outdir / "camera_poses" / "camera_poses.png",
+            out_path=log_dir / "camera_poses.png",
             axis_len=0.1,
             include_points=False,  # 想看点云就开
             center_mode="mean",  # 不以相机为原点，而是整体居中
         )
 
         # 保存结果
-        result_info = save_inference_results(
+        self.save(
             preds=preds,
-            outdir=outdir,
+            frame_id=frame_id,
             conf_thres=self.conf_thres,
             prediction_mode=self.prediction_mode,
-            frame_id=frame_id,
+            log_out_dir=log_dir,
+            inference_output_dir=self.inference_output_dir,
         )
 
         # 这里是相机在世界坐标系下的 R,t,C
-        camera_extrinsics = result_info["preds"]["extrinsic"]
-        camera_intrinsics = result_info["preds"]["intrinsic"]
+        camera_extrinsics = preds["extrinsic"]
+        camera_intrinsics = preds["intrinsic"]
         R, t, C = self.extrinsic_to_RT(camera_extrinsics)
-        world_points_from_depth = result_info["preds"][
-            "world_points_from_depth"
-        ]  # (N,3)
+        world_points_from_depth = preds["world_points_from_depth"]  # (N,3)
 
         camera_intrinsics_resized = []
         for i in range(len(camera_intrinsics)):
@@ -232,3 +223,56 @@ class CameraHead:
             world_points_from_depth,
             preds,
         )
+
+    def save(
+        self,
+        preds: dict,
+        frame_id: int,
+        conf_thres: float,
+        prediction_mode: str,
+        log_out_dir: Path,
+        inference_output_dir: Path,
+    ) -> None:
+        """
+        保存 VGGT 推理结果：
+        1. 保存 npz
+        2. 导出 glb
+
+        Args:
+            preds: VGGT 推理结果
+            outdir: 输出目录
+            imgs: 输入图像列表
+            conf_thres: 导出 glb 时的置信度阈值
+            prediction_mode: 导出 glb 时的预测模式
+            frame_id: 当前帧号（可选）
+
+        Returns:
+            None
+        """
+        log_out_dir.mkdir(parents=True, exist_ok=True)
+        inference_output_dir.mkdir(parents=True, exist_ok=True)
+
+        # 保存 npz
+        npz_path = inference_output_dir / f"frame_{frame_id:04d}_predictions.npz"
+        np.savez(npz_path, **preds)
+
+        # 导出 glb
+        frame_tag = f"_frame{frame_id:04d}" if frame_id is not None else ""
+        glb_path = log_out_dir / (
+            "scene"
+            f"{frame_tag}_conf{conf_thres}"
+            f"_mode{prediction_mode.replace(' ', '_')}.glb"
+        )
+        glb = predictions_to_glb(
+            preds,
+            conf_thres=conf_thres,
+            filter_by_frames="All",
+            show_cam=True,
+            mask_black_bg=False,
+            mask_white_bg=False,
+            mask_sky=False,
+            target_dir=log_out_dir,
+            prediction_mode=prediction_mode,
+        )
+        glb.export(file_obj=glb_path)
+        logger.info(f"Saved GLB → {glb_path}")
