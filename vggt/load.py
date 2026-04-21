@@ -23,13 +23,13 @@ Date      	By	Comments
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
 import torch
 from PIL import Image
 from torchvision import transforms as TF
-from torchvision.io import read_video
+from torchvision.io import VideoReader, read_video
 
 logger = logging.getLogger(__name__)
 
@@ -248,14 +248,48 @@ def load_sam3d_body_results(pt_file_path: List[str]) -> Dict[int, Any]:
     return res
 
 
-def load_video_frames(
+def iter_video_frames(video_path: Path) -> Iterator[torch.Tensor]:
+    """按帧流式加载视频，返回 RGB 的 HWC uint8 张量。"""
+
+    if not video_path.exists():
+        raise FileNotFoundError(f"Failed to open video: {video_path}")
+
+    reader = VideoReader(video_path.as_posix(), "video")
+    for frame in reader:
+        data = frame["data"]
+        if data.ndim == 3 and data.shape[0] in (1, 3) and data.shape[-1] not in (1, 3):
+            data = data.permute(1, 2, 0).contiguous()
+        yield data
+
+
+def iter_dual_video_frames(
     left_video_path: Path, right_video_path: Path
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    """加载视频帧并返回一个形状为 (N, H, W, C) 的张量。"""
-    left_video_frames, _, _ = read_video(
-        left_video_path.as_posix(), pts_unit="sec", output_format="THWC"
-    )
-    right_video_frames, _, _ = read_video(
-        right_video_path.as_posix(), pts_unit="sec", output_format="THWC"
-    )
-    return left_video_frames, right_video_frames
+) -> Iterator[Tuple[torch.Tensor, torch.Tensor]]:
+    """按帧同步流式加载双视角视频，遇到任一视频结束即停止。"""
+
+    if not left_video_path.exists():
+        raise FileNotFoundError(f"Failed to open left video: {left_video_path}")
+    if not right_video_path.exists():
+        raise FileNotFoundError(f"Failed to open right video: {right_video_path}")
+
+    left_reader = VideoReader(left_video_path.as_posix(), "video")
+    right_reader = VideoReader(right_video_path.as_posix(), "video")
+
+    for left_frame, right_frame in zip(left_reader, right_reader):
+        left_data = left_frame["data"]
+        right_data = right_frame["data"]
+
+        if (
+            left_data.ndim == 3
+            and left_data.shape[0] in (1, 3)
+            and left_data.shape[-1] not in (1, 3)
+        ):
+            left_data = left_data.permute(1, 2, 0).contiguous()
+        if (
+            right_data.ndim == 3
+            and right_data.shape[0] in (1, 3)
+            and right_data.shape[-1] not in (1, 3)
+        ):
+            right_data = right_data.permute(1, 2, 0).contiguous()
+
+        yield left_data, right_data

@@ -10,9 +10,9 @@ hydra:
 paths:
   sam3d_body_results_path: /workspace/data/sam3d_body_results/person
   video_path: /workspace/data/side_raw # this is raw data path, with left and right side view.
-  inference_output_path: /workspace/data/vggt_npy
+  inference_output_path: /workspace/data/vggt_npy/${infer.view}
 
-log_path: logs/vggt/${now:%Y-%m-%d}/${now:%H-%M-%S}
+log_path: logs/vggt/${infer.view}/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 # Model
 model:
@@ -32,6 +32,8 @@ infer:
   gpu: 1
   reproj_err: 20
   hflip: true
+  view: "single" # "single" or "dual"
+  frame_interval: 1
 
 runtime:
   verbose: true

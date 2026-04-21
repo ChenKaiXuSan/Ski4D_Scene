@@ -176,7 +176,7 @@ class CameraHead:
         log_dir.mkdir(parents=True, exist_ok=True)
 
         H, W = imgs[0].shape[:2]
-        
+
         # 推理
         preds, orig_h, orig_w = self.run_vggt(imgs)
 

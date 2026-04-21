@@ -53,10 +53,14 @@ def main(cfg: DictConfig) -> None:
         # if "pro" in subject_name.lower():
         #     continue; # 跳过 Pro 版本的 subject
 
-        out_dir = process_one_person(
+        logger.info(f"#" * 50)
+        logger.info(f"Processing subject: {subject_name}")
+
+        process_one_person(
             p_info,
             cfg=cfg,
         )
+        logger.info(f"#" * 50)  
 
     logger.info("==== ALL DONE ====")
 
