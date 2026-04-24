@@ -182,133 +182,71 @@ def load_and_preprocess_images(image_path_list, mode="crop"):
     return images
 
 
-def load_sam3d_body_results(pt_file_path: List[str]) -> Dict[int, Any]:
+def load_sam3d_body_results(pt_file_path: Path) -> np.ndarray:
     """
     Load SAM3D Body inference results from NPZ file.
-
-    The NPZ file contains frame-by-frame inference results with 3D
-    keypoints.
-
-    Args:
-        pt_file_path (str): Path to the SAM3D body results NPZ file.
-
-    Returns:
-        Dict[int, Any]: Dictionary mapping frame indices to predictions.
-                       Each frame entry contains:
-                       - pred_keypoints_3d: 3D keypoint coordinates
-                         shape (N_people, N_joints, 3)
-                       - pred_keypoints_2d: 2D keypoint coordinates
-                         shape (N_people, N_joints, 2)
-                       - pred_cam_t: Camera translation vector
-                       - Other fields from SAM3D output
-
-    Raises:
-        FileNotFoundError: If the NPZ file does not exist.
-        KeyError: If required data keys are missing in NPZ file.
     """
 
-    res = {}
+    data = np.load(pt_file_path, allow_pickle=True)
 
-    for one_file in pt_file_path:
-        data = np.load(one_file, allow_pickle=True)
+    if "outputs" in data.files:
+        data = data["outputs"].item()  # Assuming outputs is a single dictionary
 
-        # Handle different possible key names
-        if "outputs" in data.files:
-            outputs_data = data["outputs"]
-        elif "output" in data.files:
-            outputs_data = data["output"]
-        else:
-            raise KeyError(
-                f"Neither 'outputs' nor 'output' found in NPZ. "
-                f"Available keys: {list(data.files)}"
-            )
+    bbox = data["bbox"]  # shape (N_people, 4) in (x_min, y_min, x_max, y_max) format
+    pred_keypoints_2d = data["pred_keypoints_2d"]  # shape (N_people, N_joints, 2)
+    pred_keypoints_3d = data["pred_keypoints_3d"]  # shape (N_people, N_joints, 3)
 
-        # Convert to dictionary indexed by frame number
-        results = {}
-        if isinstance(outputs_data, np.ndarray):
-            # Case 1: outputs is an array of dictionaries/results
-            for idx, frame_result in enumerate(outputs_data):
-                # Handle wrapped numpy arrays
-                if isinstance(frame_result, np.ndarray) and frame_result.ndim == 0:
-                    frame_result = frame_result.item()
-                results[idx] = frame_result
+    return pred_keypoints_2d
 
-        elif isinstance(outputs_data, dict):
-            # Case 2: outputs is already a dictionary
-            results = outputs_data
-        else:
-            logger.warning(
-                f"Unexpected outputs type: {type(outputs_data)}, "
-                "attempting to convert to dict"
-            )
-            results = dict(enumerate(outputs_data))
 
-        res.update(results)
-
-    return res
-
-def load_vggt_results(pt_file_path: List[str]) -> Dict[int, Any]:
+def load_vggt_results(pt_file_path: Path) -> Dict[int, Any]:
     """
     Load VGGT inference results from NPZ file.
 
-    The NPZ file contains frame-by-frame inference results with camera
-    parameters and 3D keypoints.
-
-    Args:
-        pt_file_path (str): Path to the VGGT results NPZ file. 
-                            Can be a list of paths to load and merge.
-    Returns:
-        Dict[int, Any]: Dictionary mapping frame indices to predictions.
-                       Each frame entry contains:
-                       - pred_keypoints_3d: 3D keypoint coordinates
-                         shape (N_people, N_joints, 3)
-                       - pred_keypoints_2d: 2D keypoint coordinates
-                         shape (N_people, N_joints, 2)
-                       - pred_cam_t: Camera translation vector
-                       - pred_cam_r: Camera rotation (e.g. quaternion or Euler angles)
-                       - Other fields from VGGT output
-
     """
-    
-    res = {}
 
-    for one_file in pt_file_path:
-        data = np.load(one_file, allow_pickle=True)
+    data = np.load(pt_file_path, allow_pickle=True)
 
-        # Handle different possible key names
-        if "outputs" in data.files:
-            outputs_data = data["outputs"]
-        elif "output" in data.files:
-            outputs_data = data["output"]
-        else:
-            raise KeyError(
-                f"Neither 'outputs' nor 'output' found in NPZ. "
-                f"Available keys: {list(data.files)}"
-            )
+    # Handle different possible key names
+    if "outputs" in data.files:
+        outputs_data = data["outputs"]
+    elif "output" in data.files:
+        outputs_data = data["output"]
+    else:
+        outputs_data = data  # Assume the whole NPZ is the outputs dict
 
-        # Convert to dictionary indexed by frame number
-        results = {}
-        if isinstance(outputs_data, np.ndarray):
-            # Case 1: outputs is an array of dictionaries/results
-            for idx, frame_result in enumerate(outputs_data):
-                # Handle wrapped numpy arrays
-                if isinstance(frame_result, np.ndarray) and frame_result.ndim == 0:
-                    frame_result = frame_result.item()
-                results[idx] = frame_result
+    return outputs_data.item() if isinstance(outputs_data, np.ndarray) else outputs_data
 
-        elif isinstance(outputs_data, dict):
-            # Case 2: outputs is already a dictionary
-            results = outputs_data
-        else:
-            logger.warning(
-                f"Unexpected outputs type: {type(outputs_data)}, "
-                "attempting to convert to dict"
-            )
-            results = dict(enumerate(outputs_data))
 
-        res.update(results)
+def rot_point_cloud(
+    point_cloud: np.ndarray, extrinsics: np.ndarray, flag: str = "right"
+) -> Tuple[np.ndarray, np.ndarray]:
 
-    return res
+    # 定义旋转矩阵
+    if flag == "right":
+        theta = -np.pi / 2  # 向右（顺时针）
+    elif flag == "left":
+        theta = np.pi / 2  # 向左（逆时针）
+    else:
+        raise ValueError("Flag must be either 'right' or 'left'")
+
+    R_y = np.array(
+        [
+            [np.cos(theta), 0, np.sin(theta)],
+            [0, 1, 0],
+            [-np.sin(theta), 0, np.cos(theta)],
+        ],
+        dtype=np.float64,
+    )
+
+    rot_world_pts = point_cloud @ R_y.T
+
+    # * 旋转 R, 暂时保持t不变
+    rot_extrinsics = extrinsics.copy()
+    rot_extrinsics[:, :3, :3] = extrinsics[:, :3, :3] @ R_y.T
+
+    return rot_world_pts, rot_extrinsics
+
 
 def iter_video_frames(video_path: Path) -> Iterator[torch.Tensor]:
     """按帧流式加载视频，返回 RGB 的 HWC uint8 张量。"""
